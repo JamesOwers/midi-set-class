@@ -6,6 +6,9 @@ for MIDI data.
 
 > Martorell A., Gómez E. (2016) Contextual Set-Class Analysis. In: Meredith D. (eds) Computational Music Analysis. Springer, Cham. https://doi.org/10.1007/978-3-319-25931-4_4
 
+Their original MATLAB code is available here, along with other material:
+<http://agustin-martorell.weebly.com/set-class-analysis.html>
+
 # Setup
 It is recommended you set up a virtual environment for python, then follow the install.
 For example:
