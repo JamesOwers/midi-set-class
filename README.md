@@ -20,6 +20,18 @@ conda activate midi-set-class
 
 Only tested using python 3.8.
 
+## System dependencies
+You must install:
+
+* [fluidsynth](http://www.fluidsynth.org/) < version 2 for pretty_midi to work
+
+At the time of writing, on mac you can do this with:
+```bash
+brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/34dcd1ff65a56c3191fa57d3dd23e7fffd55fae8/Formula/fluid-synth.rb
+```
+
+But check https://github.com/FluidSynth/fluidsynth/wiki/Download for your distribution.
+
 ## Python install
 
 ```bash
