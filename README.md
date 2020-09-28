@@ -20,7 +20,29 @@ conda activate midi-set-class
 
 Only tested using python 3.8.
 
-## System dependencies
+## Python install
+
+```bash
+path_to_repo=/path/to/midi-set-class
+git clone https://github.com/JamesOwers/midi-set-class.git ${path_to_repo}
+pip install ${path_to_repo}
+```
+
+## Contributors
+If you would like to contribute, please install in developer mode and use the dev option
+when installing the package. Additionally, please run `pre-commit install` to
+automatically run pre-commit hooks.
+
+```bash
+pip install -e ${path_to_repo}[dev]
+pre-commit install
+```
+
+## Running documentation notebooks
+
+If you want to contribute to the documentation, you'll need a few more packages.
+
+### System dependencies
 You must install:
 
 * [fluidsynth](http://www.fluidsynth.org/) < version 2 for pretty_midi to work
@@ -32,19 +54,9 @@ brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/34dcd1ff65
 
 But check https://github.com/FluidSynth/fluidsynth/wiki/Download for your distribution.
 
-## Python install
+### Notebook extensions for jupyterlab
 
-```bash
-path_to_repo=/path/to/midi-set-class
-git clone https://github.com/JamesOwers/midi-set-class.git ${path_to_repo}
-pip install ${path_to_repo}
 ```
-## Contributors
-If you would like to contribute, please install in developer mode and use the dev option
-when installing the package. Additionally, please run `pre-commit install` to
-automatically run pre-commit hooks.
-
-```bash
-pip install -e ${path_to_repo}[dev]
-pre-commit install
+conda install -y -c conda-forge nodejs jupyter_contrib_nbextensions
+jupyter contrib nbextension install --user
 ```
