@@ -74,6 +74,40 @@ SCIENTIFIC_PATTERN = re.compile(
     f"^([{PITCH_CHARACTERS}])({ACCIDENTAL_MATCH_STR})(-?[0-9]+)$"
 )
 
+ABC_SHARP_CHR = "^"
+ABC_FLAT_CHR = "_"
+ABC_NAT_CHR = "="
+ABC_ACCIDENTAL_STR = (
+    fr"\{ABC_SHARP_CHR}{{0,{MAX_NR_ACCIDENTALS}}}|"
+    fr"{ABC_FLAT_CHR}{{0,{MAX_NR_ACCIDENTALS}}}|"
+    fr"{ABC_NAT_CHR}{{0,{MAX_NR_ACCIDENTALS}}}"
+)
+ABC_LETTER_CHR = r"[A-Ga-g]"
+ABC_OCT_UP = "'"
+ABC_OCT_DOWN = ","
+ABC_MAX_OCTAVES = 8
+ABC_OCTAVE_STR = (
+    fr"{ABC_OCT_UP}{{0,{ABC_MAX_OCTAVES}}}|\{ABC_OCT_DOWN}{{0,{ABC_MAX_OCTAVES}}}"
+)
+ABC_PITCH_MATCH_STR = f"^({ABC_ACCIDENTAL_STR})({ABC_LETTER_CHR})({ABC_OCTAVE_STR})$"
+ABC_PATTERN = re.compile(ABC_PITCH_MATCH_STR)
+ABC_PITCH_CHR_TO_SCIENTIFIC = {
+    "C": "C4",
+    "D": "D4",
+    "E": "E4",
+    "F": "F4",
+    "G": "G4",
+    "A": "A4",
+    "B": "B4",
+    "c": "C5",
+    "d": "D5",
+    "e": "E5",
+    "f": "F5",
+    "g": "G5",
+    "a": "A5",
+    "b": "B5",
+}
+
 
 def midipitch_to_freq(midipitch: float) -> float:
     """Converts midipitches to frequencies (in Hertz).
@@ -251,3 +285,132 @@ def scientific_to_pitchclass(pitch_str: str) -> int:
         pitchclass: the pitch-class value of the scientific pitch string.
     """
     return midipitch_to_pitchclass(scientific_to_midipitch(pitch_str))
+
+
+def parse_abc(pitch_str: str) -> Union[List[str], ValueError]:
+    """Parses abc pitch string.
+
+    Args:
+        pitch_str: the string to check.
+
+    Returns:
+        matched_groups: a list of all the groups matched.
+    Raises:
+        ValueError: if the string is not a valid scientific pitch string
+    """
+    if not isinstance(pitch_str, str):
+        msg = f"ABC pitch must be a string, got {repr(pitch_str)}."
+        log_and_raise(LOGGER, msg)
+    if not ABC_PATTERN.match(pitch_str):
+        msg = f"Not a valid abc note, got {repr(pitch_str)}."
+        log_and_raise(LOGGER, msg)
+    matched_groups = ABC_PATTERN.match(pitch_str).groups()
+    return matched_groups
+
+
+def abc_to_midipitch(abc_str: str) -> int:
+    """Converts a string representing a note in abc midipitches.
+
+    Args:
+        abc: the abc string convert to midipitch.
+
+    Returns:
+        midipitch: the midipitch value of the supplied string.
+    """
+    accidental_str, pitch_chr, octave_str = parse_abc(abc_str)
+    sci_pitch_chr = ABC_PITCH_CHR_TO_SCIENTIFIC[pitch_chr]
+    midipitch = scientific_to_midipitch(sci_pitch_chr)
+    nr_acc = len(accidental_str)
+    if nr_acc > 0:
+        if ABC_SHARP_CHR in accidental_str:
+            midipitch += nr_acc
+        elif ABC_FLAT_CHR in accidental_str:
+            midipitch -= nr_acc
+    nr_oct = len(octave_str)
+    if nr_oct > 0:
+        if ABC_OCT_UP in octave_str:
+            midipitch += 12 * nr_oct
+        elif ABC_OCT_DOWN in octave_str:
+            midipitch -= 12 * nr_oct
+    return midipitch
+
+
+def abc_to_scientific(abc_str: str) -> str:
+    """Converts a string representing a note in abc to scientific.
+
+    Args:
+        abc_str: the abc string convert to midipitch.
+
+    Returns:
+        sci_str: the scientific pitch value of the supplied string.
+    """
+    accidental_str, _, _ = parse_abc(abc_str)
+    nr_acc = len(accidental_str)
+    if nr_acc > 0:
+        if ABC_SHARP_CHR in accidental_str:
+            acc_type = "sharp"
+        elif ABC_FLAT_CHR in accidental_str:
+            acc_type = "flat"
+    midipitch = abc_to_midipitch(abc_str)
+    return midipitch_to_scientific(midipitch, acc_type=acc_type, nr_acc=nr_acc)
+
+
+def scientific_to_abc(pitch_str: str) -> str:
+    """Converts a string representing a pitch in scientific to abc.
+
+    Args:
+        pitch_str: the scientific string convert to abc.
+
+    Returns:
+        abc_str: the abc pitch value of the supplied string.
+    """
+    pitch_chr, accidental_str, octave = parse_scientific(pitch_str)
+    oct_int = int(octave)
+    if oct_int <= 3:
+        nr_oct = -(oct_int - 4)
+        oct_str = ABC_OCT_DOWN * nr_oct
+        pitch_chr = pitch_chr.upper()
+    elif oct_int == 4:
+        oct_str = ""
+        pitch_chr = pitch_chr.upper()
+    elif oct_int == 5:
+        oct_str = ""
+        pitch_chr = pitch_chr.lower()
+    elif oct_int >= 6:
+        nr_oct = oct_int - 5
+        oct_str = ABC_OCT_UP * nr_oct
+        pitch_chr = pitch_chr.lower()
+
+    nr_acc = len(accidental_str)
+    if nr_acc > 0:
+        if "#" in accidental_str:
+            acc_str = ABC_SHARP_CHR * nr_acc
+        elif "b" in accidental_str:
+            acc_str = ABC_FLAT_CHR * nr_acc
+    else:
+        acc_str = ""
+    return f"{acc_str}{pitch_chr}{oct_str}"
+
+
+def midipitch_to_abc(
+    midipitch: float, acc_type: str = "sharp", nr_acc: Optional[int] = None,
+) -> Union[str, ValueError]:
+    """Converts an integer midipitch into abc notation.
+
+    ABC notation can only represent integer midipitches, so will error if the
+    supplied midipitch is not an integer value.
+
+    Args:
+        midipitch: the midipitch value to convert to scientific.
+        acc_type: whether to use sharps (#) or flats (b) in the output.
+        nr_acc: if specified, insists on a specific number of accidentals to
+            use in the output.
+
+    Returns:
+        pitch_str: the abc pitch value.
+
+    Exceptions:
+        ValueError: if the supplied midipitch is not an integer.
+    """
+    sci_pitch_str = midipitch_to_scientific(midipitch, acc_type=acc_type, nr_acc=nr_acc)
+    return scientific_to_abc(sci_pitch_str)
